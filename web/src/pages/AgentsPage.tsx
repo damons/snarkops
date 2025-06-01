@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 
 interface AgentStatus {
@@ -24,8 +25,10 @@ export default function AgentsPage() {
       <ul>
         {agents.map((a) => (
           <li key={a.agent_id}>
-            {a.agent_id} - {a.is_connected ? 'online' : 'offline'}{' '}
-            {a.external_ip && `(${a.external_ip})`}
+            <Link to={`/agents/${a.agent_id}`}>
+              {a.agent_id} - {a.is_connected ? 'online' : 'offline'}{' '}
+              {a.external_ip && `(${a.external_ip})`}
+            </Link>
           </li>
         ))}
       </ul>
