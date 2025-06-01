@@ -24,6 +24,18 @@ and attacks, and guarantee metrics.
 
 To learn more about `snops` we recommend checking out the mdbook [here](https://monadicus.github.io/snarkops/).
 
+## Web Frontend
+
+An experimental React web interface lives in the [`web`](./web) directory. It
+uses the bundled TypeScript SDK to talk to the control plane API and provides
+a browser based alternative to the CLI.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
 ## Snops Quickstart
 
 ### Easy Setup
