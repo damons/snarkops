@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Snops } from 'snops_sdk';
+import { api } from '../api';
 
-const api = new Snops('');
 
 export default function EnvsPage() {
   const [envs, setEnvs] = useState<string[]>([]);
