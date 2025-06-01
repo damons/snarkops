@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 
 
@@ -18,7 +19,9 @@ export default function EnvsPage() {
       <h2>Environments</h2>
       <ul>
         {envs.map((e) => (
-          <li key={e}>{e}</li>
+          <li key={e}>
+            <Link to={`/envs/${e}`}>{e}</Link>
+          </li>
         ))}
       </ul>
     </div>
