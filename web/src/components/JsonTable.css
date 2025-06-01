@@ -1,0 +1,12 @@
+.json-table {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.json-table th,
+.json-table td {
+  border: 1px solid black;
+  padding: 2px 4px;
+  vertical-align: top;
+}
+
