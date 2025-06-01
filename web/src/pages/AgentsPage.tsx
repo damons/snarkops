@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Snops } from 'snops_sdk';
+import { api } from '../api';
 
 interface AgentStatus {
   agent_id: string;
@@ -7,7 +7,6 @@ interface AgentStatus {
   external_ip?: string;
 }
 
-const api = new Snops('');
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
