@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
+import JsonTable from '../components/JsonTable';
 
 interface AgentStatus {
   agent_id: string;
@@ -32,7 +33,10 @@ export default function AgentInfoPage() {
       <p>Status: {agent.is_connected ? 'online' : 'offline'}</p>
       {agent.external_ip && <p>External IP: {agent.external_ip}</p>}
       {agent.internal_ip && <p>Internal IP: {agent.internal_ip}</p>}
+      <h3>Agent Info (JSON)</h3>
       <pre>{JSON.stringify(agent.state, null, 2)}</pre>
+      <h3>Agent Info Table</h3>
+      <JsonTable data={agent.state} />
       <Link to="/agents">Back to Agents</Link>
     </div>
   );
