@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
+import JsonTable from '../components/JsonTable';
 
 export default function EnvInfoPage() {
   const { envId } = useParams();
@@ -22,7 +23,8 @@ export default function EnvInfoPage() {
   return (
     <div>
       <h2>Environment {envId}</h2>
-      <pre>{JSON.stringify(info, null, 2)}</pre>
+      <h3>Environment Info</h3>
+      <JsonTable data={info} />
       <Link to="/envs">Back to Environments</Link>
     </div>
   );
