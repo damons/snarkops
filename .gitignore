@@ -17,3 +17,6 @@ book
 # report files
 report.html
 report.json
+/web/dist
+/web/node_modules
+/web/package-lock.json

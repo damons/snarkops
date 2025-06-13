@@ -8,3 +8,10 @@ html, body {
   font-family: 'Roboto Mono', monospace;
   font-weight: 100;
 }
+a:link {
+  color: #b3e0ff; /* very light blue */
+}
+
+a:visited {
+  color: #e0b3ff; /* very light purple */
+}
