@@ -248,6 +248,7 @@ export default function AgentsPage() {
                   else if (c.sortable) handleSort(c.key as keyof AgentRow);
                 }}
                 style={
+                  c.key === "select" ||
                   c.key === "network" ||
                   c.key === "online" ||
                   c.key === "internalPeers" ||
@@ -268,7 +269,7 @@ export default function AgentsPage() {
                 switch (c.key) {
                   case "select":
                     return (
-                      <td key={c.key}>
+                      <td key={c.key} style={{ textAlign: "center" }}>
                         <input
                           type="checkbox"
                           checked={selected.has(r.agentId)}
