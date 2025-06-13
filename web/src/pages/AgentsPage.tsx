@@ -106,34 +106,33 @@ export default function AgentsPage() {
 
   useEffect(() => {
     async function fetchPeers() {
-      const metrics: Record<string, { clients: number; validators: number; total: number }> = {};
-      await Promise.all(
-        agents.map(async (a: any) => {
-          if (!a.is_connected) return;
-          const ip = a.internal_ip;
-          const state = a.state;
-          if (!ip || !(state && state.Node)) return;
-          const [envId] = state.Node as [string, any];
-          const network = envNetworks[envId] || envId;
-          try {
-            const res = await fetch(`http://${ip}:3030/${network}/peers/all/metrics`);
-            if (!res.ok) return;
-            const peers = await res.json();
-            let clients = 0;
-            let validators = 0;
-            for (const p of peers) {
-              if (Array.isArray(p) && p.length >= 2) {
-                if (p[1] === "Client") clients += 1;
-                if (p[1] === "Validator") validators += 1;
-              }
+      agents.forEach(async (a: any) => {
+        if (!a.is_connected) return;
+        const ip = a.internal_ip;
+        const state = a.state;
+        if (!ip || !(state && state.Node)) return;
+        const [envId] = state.Node as [string, any];
+        const network = envNetworks[envId] || envId;
+        try {
+          const res = await fetch(`http://${ip}:3030/${network}/peers/all/metrics`);
+          if (!res.ok) return;
+          const peers = await res.json();
+          let clients = 0;
+          let validators = 0;
+          for (const p of peers) {
+            if (Array.isArray(p) && p.length >= 2) {
+              if (p[1] === "Client") clients += 1;
+              if (p[1] === "Validator") validators += 1;
             }
-            metrics[a.agent_id] = { clients, validators, total: clients + validators };
-          } catch (e) {
-            console.error(e);
           }
-        })
-      );
-      setPeerMetrics(metrics);
+          setPeerMetrics(prev => ({
+            ...prev,
+            [a.agent_id]: { clients, validators, total: clients + validators },
+          }));
+        } catch (e) {
+          console.error(e);
+        }
+      });
     }
 
     if (agents.length > 0) {
@@ -372,8 +371,8 @@ export default function AgentsPage() {
                     );
                   case "peers":
                     return (
-                      <td key={c.key} style={{ textAlign: "center", whiteSpace: "pre" }}>
-                        {`Clients: ${r.peers.clients}\nValidators: ${r.peers.validators}\nTotal: ${r.peers.total}`}
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {`C: ${r.peers.clients}  V:${r.peers.validators} ∑:${r.peers.total}`}
                       </td>
                     );
                   default:
