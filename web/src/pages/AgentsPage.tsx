@@ -297,14 +297,16 @@ export default function AgentsPage() {
                     return <td key={c.key}>{r.nodeKey}</td>;
                   case "online":
                     return (
-                      <td
-                        key={c.key}
-                        style={{
-                          textAlign: "center",
-                          color: r.online ? "green" : "red",
-                        }}
-                      >
-                        {r.online ? "yes" : "no"}
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: "0.6em",
+                            height: "0.6em",
+                            borderRadius: "50%",
+                            backgroundColor: r.online ? "green" : "red",
+                          }}
+                        />
                       </td>
                     );
                   case "internalPeers":
