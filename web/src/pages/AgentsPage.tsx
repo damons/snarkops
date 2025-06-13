@@ -43,6 +43,16 @@ const defaultColumns: Column[] = [
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
 ];
 
+async function fetchWithTimeout(url: string, ms: number): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [envNetworks, setEnvNetworks] = useState<Record<string, string>>({});
@@ -116,14 +126,15 @@ export default function AgentsPage() {
             const ip = a.internal_ip;
             if (nodeState.online && ip) {
               try {
-                const resp = await fetch(
-                  `http://${ip}:3030/${network}/block/height/latest`
+                const resp = await fetchWithTimeout(
+                  `http://${ip}:3030/${network}/block/height/latest`,
+                  5000
                 );
                 const text = await resp.text();
                 const h = parseInt(text, 10);
                 res[a.agent_id] = Number.isNaN(h) ? null : h;
               } catch (e) {
-                console.error(e);
+                // Network issues are common; quietly mark height as unavailable
                 res[a.agent_id] = null;
               }
             } else {
