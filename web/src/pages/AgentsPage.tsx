@@ -123,7 +123,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h2>Agents</h2>
       <table className="json-table">
         <thead>

@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 export default function App() {
   return (
     <>
-      <nav>
+      <nav style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
         <Link to="/">Dashboard</Link> |{' '}
         <Link to="/agents">Agents</Link> |{' '}
         <Link to="/envs">Environments</Link>

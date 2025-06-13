@@ -10,8 +10,10 @@ html, body {
 }
 a:link {
   color: #b3e0ff; /* very light blue */
+  text-decoration: none;
 }
 
 a:visited {
   color: #e0b3ff; /* very light purple */
+  text-decoration: none;
 }

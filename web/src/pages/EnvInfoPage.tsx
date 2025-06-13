@@ -21,7 +21,7 @@ export default function EnvInfoPage() {
   }
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h2>Environment {envId}</h2>
       <h3>Environment Info</h3>
       <JsonTable data={info} />

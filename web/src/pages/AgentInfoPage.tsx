@@ -24,18 +24,26 @@ export default function AgentInfoPage() {
   }, [agentId]);
 
   if (!agent) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h2>Agent {agent.agent_id}</h2>
-      <p>Status: {agent.is_connected ? 'online' : 'offline'}</p>
-      {agent.external_ip && <p>External IP: {agent.external_ip}</p>}
-      {agent.internal_ip && <p>Internal IP: {agent.internal_ip}</p>}
-      <h3>Agent Info</h3>
-      <JsonTable data={agent.state} />
-      <Link to="/agents">Back to Agents</Link>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div>
+        <h2 style={{ textAlign: 'center' }}>Agent {agent.agent_id}</h2>
+        <p style={{ textAlign: 'center' }}>Status: {agent.is_connected ? 'online' : 'offline'}</p>
+        {agent.external_ip && <p style={{ textAlign: 'center' }}>External IP: {agent.external_ip}</p>}
+        {agent.internal_ip && <p style={{ textAlign: 'center' }}>Internal IP: {agent.internal_ip}</p>}
+        <h3 style={{ textAlign: 'center' }}>Agent Info</h3>
+        <JsonTable data={agent.state} />
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <Link to="/agents">Back to Agents</Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -59,11 +59,10 @@ export default function EnvironmentsPanel() {
       cancelled = true;
     };
   }, []);
-
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h3>Environments</h3>
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', justifyContent: 'center' }}>
         {envs.map((env) => (
           <div
             key={env.id}
