@@ -19,6 +19,7 @@ interface AgentRow {
   network: string;
   nodeKey: string;
   online: boolean;
+  height: number | null;
   internalPeers: number;
   externalPeers: number;
 }
@@ -37,6 +38,7 @@ const defaultColumns: Column[] = [
   { key: "network", label: "NETWORK", sortable: true },
   { key: "nodeKey", label: "NODE KEY", sortable: true },
   { key: "online", label: "ONLINE", sortable: true },
+  { key: "height", label: "HEIGHT", sortable: true },
   { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
 ];
@@ -55,6 +57,8 @@ export default function AgentsPage() {
   const [action, setAction] = useState<string>("kill");
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [dragCol, setDragCol] = useState<number | null>(null);
+  const [heights, setHeights] = useState<Record<string, number | null>>({});
+  const [refreshRate, setRefreshRate] = useState<number>(10);
 
   useEffect(() => {
     async function load() {
@@ -96,6 +100,49 @@ export default function AgentsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (agents.length === 0) return;
+
+    let cancelled = false;
+
+    async function fetchHeights() {
+      const res: Record<string, number | null> = {};
+      await Promise.all(
+        agents.map(async (a: any) => {
+          const state = a.state;
+          if (state && state.Node) {
+            const [envId, nodeState] = state.Node as [string, any];
+            const network = envNetworks[envId] || envId;
+            const ip = a.internal_ip;
+            if (nodeState.online && ip) {
+              try {
+                const resp = await fetch(
+                  `http://${ip}:3030/${network}/block/height/latest`
+                );
+                const text = await resp.text();
+                const h = parseInt(text, 10);
+                res[a.agent_id] = Number.isNaN(h) ? null : h;
+              } catch (e) {
+                console.error(e);
+                res[a.agent_id] = null;
+              }
+            } else {
+              res[a.agent_id] = null;
+            }
+          }
+        })
+      );
+      if (!cancelled) setHeights(res);
+    }
+
+    fetchHeights();
+    const id = setInterval(fetchHeights, refreshRate * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [agents, envNetworks, refreshRate]);
+
   const rows: AgentRow[] = agents.map((a: any) => {
     let network = "";
     let nodeKey = "";
@@ -124,6 +171,7 @@ export default function AgentsPage() {
       network,
       nodeKey,
       online,
+      height: heights[a.agent_id] ?? null,
       internalPeers,
       externalPeers,
     };
@@ -218,20 +266,44 @@ export default function AgentsPage() {
       style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
     >
       <h2>Agents</h2>
-      <div style={{ marginBottom: "0.5rem" }}>
-        <label>
-          ACTION{" "}
-          <select value={action} onChange={(e) => setAction(e.target.value)}>
-            <option value="kill">kill</option>
-            <option value="status">status</option>
-            <option value="tps">tps</option>
-            <option value="set-log-level">set log level</option>
-            <option value="set-snarkos-log">set snarkos log level</option>
-          </select>
-        </label>{" "}
-        <button onClick={handleExecute} disabled={selected.size === 0}>
-          EXECUTE
-        </button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: "0.5rem",
+        }}
+      >
+        <div>
+          <label>
+            ACTION{" "}
+            <select value={action} onChange={(e) => setAction(e.target.value)}>
+              <option value="kill">kill</option>
+              <option value="status">status</option>
+              <option value="tps">tps</option>
+              <option value="set-log-level">set log level</option>
+              <option value="set-snarkos-log">set snarkos log level</option>
+            </select>
+          </label>{" "}
+          <button onClick={handleExecute} disabled={selected.size === 0}>
+            EXECUTE
+          </button>
+        </div>
+        <div>
+          <label>
+            REFRESH RATE (sec):{" "}
+            <input
+              type="number"
+              min={1}
+              value={refreshRate}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setRefreshRate(Number.isNaN(v) ? 1 : Math.max(1, v));
+              }}
+              style={{ width: "4em" }}
+            />
+          </label>
+        </div>
       </div>
       <table className="json-table">
         <thead>
@@ -252,6 +324,7 @@ export default function AgentsPage() {
                   c.key === "select" ||
                   c.key === "network" ||
                   c.key === "online" ||
+                  c.key === "height" ||
                   c.key === "internalPeers" ||
                   c.key === "externalPeers"
                     ? { textAlign: "center" }
@@ -309,6 +382,12 @@ export default function AgentsPage() {
                             backgroundColor: r.online ? "green" : "red",
                           }}
                         />
+                      </td>
+                    );
+                  case "height":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.height ?? "-"}
                       </td>
                     );
                   case "internalPeers":
