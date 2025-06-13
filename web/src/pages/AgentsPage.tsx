@@ -20,6 +20,7 @@ interface AgentRow {
   network: string;
   nodeKey: string;
   online: boolean;
+  height: number | null;
   internalPeers: number;
   externalPeers: number;
   peers: {
@@ -43,6 +44,7 @@ const defaultColumns: Column[] = [
   { key: "network", label: "NETWORK", sortable: true },
   { key: "nodeKey", label: "NODE KEY", sortable: true },
   { key: "online", label: "ONLINE", sortable: true },
+  { key: "height", label: "HEIGHT", sortable: true },
   { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
   { key: "peers", label: "PEERS (C,V,T)", sortable: false },
@@ -63,6 +65,8 @@ export default function AgentsPage() {
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [dragCol, setDragCol] = useState<number | null>(null);
   const [peerMetrics, setPeerMetrics] = useState<Record<string, { clients: number; validators: number; total: number }>>({});
+  const [heights, setHeights] = useState<Record<string, number | null>>({});
+  const [refreshRate, setRefreshRate] = useState<number>(30);
 
   useEffect(() => {
     async function load() {
@@ -105,7 +109,9 @@ export default function AgentsPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchPeers() {
+    let interval: NodeJS.Timeout | undefined;
+
+    async function fetchMetrics() {
       agents.forEach(async (a: any) => {
         if (!a.is_connected) return;
         const ip = a.internal_ip;
@@ -115,30 +121,51 @@ export default function AgentsPage() {
         const network = envNetworks[envId] || envId;
         try {
           const res = await fetch(`http://${ip}:3030/${network}/peers/all/metrics`);
-          if (!res.ok) return;
-          const peers = await res.json();
-          let clients = 0;
-          let validators = 0;
-          for (const p of peers) {
-            if (Array.isArray(p) && p.length >= 2) {
-              if (p[1] === "Client") clients += 1;
-              if (p[1] === "Validator") validators += 1;
+          if (res.ok) {
+            const peers = await res.json();
+            let clients = 0;
+            let validators = 0;
+            for (const p of peers) {
+              if (Array.isArray(p) && p.length >= 2) {
+                if (p[1] === "Client") clients += 1;
+                if (p[1] === "Validator") validators += 1;
+              }
             }
+            setPeerMetrics((prev) => ({
+              ...prev,
+              [a.agent_id]: { clients, validators, total: clients + validators },
+            }));
           }
-          setPeerMetrics(prev => ({
-            ...prev,
-            [a.agent_id]: { clients, validators, total: clients + validators },
-          }));
         } catch (e) {
           console.error(e);
+        }
+
+        try {
+          const hRes = await fetch(
+            `http://${ip}:3030/${network}/block/height/latest`
+          );
+          if (hRes.ok) {
+            const h = await hRes.json();
+            setHeights((prev) => ({ ...prev, [a.agent_id]: h }));
+          } else {
+            setHeights((prev) => ({ ...prev, [a.agent_id]: null }));
+          }
+        } catch (e) {
+          console.error(e);
+          setHeights((prev) => ({ ...prev, [a.agent_id]: null }));
         }
       });
     }
 
     if (agents.length > 0) {
-      fetchPeers();
+      fetchMetrics();
+      interval = setInterval(fetchMetrics, refreshRate * 1000);
     }
-  }, [agents, envNetworks]);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [agents, envNetworks, refreshRate]);
 
   const rows: AgentRow[] = agents.map((a: any) => {
     let network = "";
@@ -168,6 +195,7 @@ export default function AgentsPage() {
       network,
       nodeKey,
       online,
+      height: heights[a.agent_id] ?? null,
       internalPeers,
       externalPeers,
       peers: peerMetrics[a.agent_id] || { clients: 0, validators: 0, total: 0 },
@@ -297,6 +325,7 @@ export default function AgentsPage() {
                   c.key === "select" ||
                   c.key === "network" ||
                   c.key === "online" ||
+                  c.key === "height" ||
                   c.key === "internalPeers" ||
                   c.key === "externalPeers" ||
                   c.key === "peers"
@@ -357,6 +386,12 @@ export default function AgentsPage() {
                         />
                       </td>
                     );
+                  case "height":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.height ?? ""}
+                      </td>
+                    );
                   case "internalPeers":
                     return (
                       <td key={c.key} style={{ textAlign: "center" }}>
@@ -383,6 +418,16 @@ export default function AgentsPage() {
           ))}
         </tbody>
       </table>
+      <div style={{ margin: "0.5rem", textAlign: "center" }}>
+        REFRESH RATE (sec):{' '}
+        <input
+          type="number"
+          min={1}
+          value={refreshRate}
+          onChange={(e) => setRefreshRate(Number(e.target.value))}
+          style={{ width: '4rem' }}
+        />
+      </div>
       <ControlPlaneConsole />
     </div>
   );
