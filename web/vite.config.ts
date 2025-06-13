@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://caladan:1234'
-    }
+      '/api': {
+        target: 'http://caladan:1234',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   }
 });
