@@ -45,7 +45,7 @@ const defaultColumns: Column[] = [
   { key: "online", label: "ONLINE", sortable: true },
   { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
-  { key: "peers", label: "PEERS", sortable: false },
+  { key: "peers", label: "PEERS (C,V,T)", sortable: false },
 ];
 
 export default function AgentsPage() {
@@ -372,7 +372,7 @@ export default function AgentsPage() {
                   case "peers":
                     return (
                       <td key={c.key} style={{ textAlign: "center" }}>
-                        {`C: ${r.peers.clients}  V:${r.peers.validators} ∑:${r.peers.total}`}
+                        {`${r.peers.clients} ${r.peers.validators} ${r.peers.total}`}
                       </td>
                     );
                   default:
