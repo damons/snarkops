@@ -19,6 +19,7 @@ interface AgentRow {
   network: string;
   nodeKey: string;
   online: boolean;
+  height: number | null;
   internalPeers: number;
   externalPeers: number;
 }
@@ -37,6 +38,7 @@ const defaultColumns: Column[] = [
   { key: "network", label: "NETWORK", sortable: true },
   { key: "nodeKey", label: "NODE KEY", sortable: true },
   { key: "online", label: "ONLINE", sortable: true },
+  { key: "height", label: "HEIGHT", sortable: true },
   { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
 ];
@@ -55,6 +57,7 @@ export default function AgentsPage() {
   const [action, setAction] = useState<string>("kill");
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [dragCol, setDragCol] = useState<number | null>(null);
+  const [heights, setHeights] = useState<Record<string, number | null>>({});
 
   useEffect(() => {
     async function load() {
@@ -96,6 +99,41 @@ export default function AgentsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    async function fetchHeights() {
+      const res: Record<string, number | null> = {};
+      await Promise.all(
+        agents.map(async (a: any) => {
+          const state = a.state;
+          if (state && state.Node) {
+            const [envId, nodeState] = state.Node as [string, any];
+            const network = envNetworks[envId] || envId;
+            const ip = a.internal_ip;
+            if (nodeState.online && ip) {
+              try {
+                const resp = await fetch(
+                  `http://${ip}:3030/${network}/block/height/latest`
+                );
+                const text = await resp.text();
+                const h = parseInt(text, 10);
+                res[a.agent_id] = Number.isNaN(h) ? null : h;
+              } catch (e) {
+                console.error(e);
+                res[a.agent_id] = null;
+              }
+            } else {
+              res[a.agent_id] = null;
+            }
+          }
+        })
+      );
+      setHeights(res);
+    }
+    if (agents.length > 0) {
+      fetchHeights();
+    }
+  }, [agents, envNetworks]);
+
   const rows: AgentRow[] = agents.map((a: any) => {
     let network = "";
     let nodeKey = "";
@@ -124,6 +162,7 @@ export default function AgentsPage() {
       network,
       nodeKey,
       online,
+      height: heights[a.agent_id] ?? null,
       internalPeers,
       externalPeers,
     };
@@ -252,6 +291,7 @@ export default function AgentsPage() {
                   c.key === "select" ||
                   c.key === "network" ||
                   c.key === "online" ||
+                  c.key === "height" ||
                   c.key === "internalPeers" ||
                   c.key === "externalPeers"
                     ? { textAlign: "center" }
@@ -309,6 +349,12 @@ export default function AgentsPage() {
                             backgroundColor: r.online ? "green" : "red",
                           }}
                         />
+                      </td>
+                    );
+                  case "height":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.height ?? "-"}
                       </td>
                     );
                   case "internalPeers":
