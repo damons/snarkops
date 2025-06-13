@@ -29,6 +29,8 @@ export default function AgentsPage() {
     key: 'agentId',
     dir: 'asc',
   });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [action, setAction] = useState<string>('kill');
 
   useEffect(() => {
     async function load() {
@@ -122,13 +124,62 @@ export default function AgentsPage() {
     );
   };
 
+  const handleExecute = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Execute ${action} on ${selected.size} agent(s)?`)) return;
+
+    for (const id of Array.from(selected)) {
+      try {
+        switch (action) {
+          case 'kill':
+            await api.agents.kill(id);
+            break;
+          case 'status':
+            await api.agents.status(id);
+            break;
+          case 'tps':
+            await api.agents.tps(id);
+            break;
+          case 'set-log-level': {
+            const level = window.prompt('Log level', 'info');
+            if (level) await api.agents.setLogLevel(id, level);
+            break;
+          }
+          case 'set-snarkos-log': {
+            const v = window.prompt('Verbosity', '0');
+            if (v) await api.agents.setSnarkosLogLevel(id, parseInt(v, 10));
+            break;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    setSelected(new Set());
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h2>Agents</h2>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label>
+          ACTION{' '}
+          <select value={action} onChange={(e) => setAction(e.target.value)}>
+            <option value="kill">kill</option>
+            <option value="status">status</option>
+            <option value="tps">tps</option>
+            <option value="set-log-level">set log level</option>
+            <option value="set-snarkos-log">set snarkos log level</option>
+          </select>
+        </label>{' '}
+        <button onClick={handleExecute} disabled={selected.size === 0}>EXECUTE</button>
+      </div>
       <table className="json-table">
         <thead>
           <tr>
             <th onClick={() => handleSort('agentId')}>AGENT ID</th>
+            <th>SELECT</th>
             <th onClick={() => handleSort('network')}>NETWORK</th>
             <th onClick={() => handleSort('nodeKey')}>NODE KEY</th>
             <th onClick={() => handleSort('online')}>ONLINE</th>
@@ -141,6 +192,18 @@ export default function AgentsPage() {
             <tr key={r.agentId}>
               <td>
                 <Link to={`/agents/${r.agentId}`}>{r.agentId}</Link>
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selected.has(r.agentId)}
+                  onChange={(e) => {
+                    const ns = new Set(selected);
+                    if (e.target.checked) ns.add(r.agentId);
+                    else ns.delete(r.agentId);
+                    setSelected(ns);
+                  }}
+                />
               </td>
               <td>{r.network}</td>
               <td>{r.nodeKey}</td>
