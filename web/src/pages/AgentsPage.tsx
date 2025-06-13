@@ -7,6 +7,7 @@ interface AgentStatus {
   agent_id: string;
   is_connected: boolean;
   external_ip?: string;
+  internal_ip?: string;
   state: any;
 }
 
@@ -21,6 +22,11 @@ interface AgentRow {
   online: boolean;
   internalPeers: number;
   externalPeers: number;
+  peers: {
+    clients: number;
+    validators: number;
+    total: number;
+  };
 }
 
 type ColumnKey = "select" | keyof AgentRow;
@@ -39,6 +45,7 @@ const defaultColumns: Column[] = [
   { key: "online", label: "ONLINE", sortable: true },
   { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
   { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
+  { key: "peers", label: "PEERS (C,V,T)", sortable: false },
 ];
 
 export default function AgentsPage() {
@@ -55,6 +62,7 @@ export default function AgentsPage() {
   const [action, setAction] = useState<string>("kill");
   const [columns, setColumns] = useState<Column[]>(defaultColumns);
   const [dragCol, setDragCol] = useState<number | null>(null);
+  const [peerMetrics, setPeerMetrics] = useState<Record<string, { clients: number; validators: number; total: number }>>({});
 
   useEffect(() => {
     async function load() {
@@ -96,6 +104,42 @@ export default function AgentsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    async function fetchPeers() {
+      agents.forEach(async (a: any) => {
+        if (!a.is_connected) return;
+        const ip = a.internal_ip;
+        const state = a.state;
+        if (!ip || !(state && state.Node)) return;
+        const [envId] = state.Node as [string, any];
+        const network = envNetworks[envId] || envId;
+        try {
+          const res = await fetch(`http://${ip}:3030/${network}/peers/all/metrics`);
+          if (!res.ok) return;
+          const peers = await res.json();
+          let clients = 0;
+          let validators = 0;
+          for (const p of peers) {
+            if (Array.isArray(p) && p.length >= 2) {
+              if (p[1] === "Client") clients += 1;
+              if (p[1] === "Validator") validators += 1;
+            }
+          }
+          setPeerMetrics(prev => ({
+            ...prev,
+            [a.agent_id]: { clients, validators, total: clients + validators },
+          }));
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    }
+
+    if (agents.length > 0) {
+      fetchPeers();
+    }
+  }, [agents, envNetworks]);
+
   const rows: AgentRow[] = agents.map((a: any) => {
     let network = "";
     let nodeKey = "";
@@ -126,6 +170,7 @@ export default function AgentsPage() {
       online,
       internalPeers,
       externalPeers,
+      peers: peerMetrics[a.agent_id] || { clients: 0, validators: 0, total: 0 },
     };
   });
 
@@ -253,7 +298,8 @@ export default function AgentsPage() {
                   c.key === "network" ||
                   c.key === "online" ||
                   c.key === "internalPeers" ||
-                  c.key === "externalPeers"
+                  c.key === "externalPeers" ||
+                  c.key === "peers"
                     ? { textAlign: "center" }
                     : undefined
                 }
@@ -321,6 +367,12 @@ export default function AgentsPage() {
                     return (
                       <td key={c.key} style={{ textAlign: "center" }}>
                         {r.externalPeers}
+                      </td>
+                    );
+                  case "peers":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {`${r.peers.clients} ${r.peers.validators} ${r.peers.total}`}
                       </td>
                     );
                   default:
