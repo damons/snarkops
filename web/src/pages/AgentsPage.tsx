@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import ControlPlaneConsole from "../components/ControlPlaneConsole";
 
 interface AgentStatus {
   agent_id: string;
@@ -330,6 +331,7 @@ export default function AgentsPage() {
           ))}
         </tbody>
       </table>
+      <ControlPlaneConsole />
     </div>
   );
 }
