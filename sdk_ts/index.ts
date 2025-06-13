@@ -112,9 +112,25 @@ class SnopsApi {
 		return this.get(`agents/${id}`);
 	}
 
-	async getAgentTps(id: string): Promise<number> {
-		return this.get(`agents/${id}/tps`);
-	}
+        async getAgentTps(id: string): Promise<number> {
+                return this.get(`agents/${id}/tps`);
+        }
+
+        async killAgent(id: string): Promise<any> {
+                return this.post(`agents/${id}/kill`);
+        }
+
+        async agentStatus(id: string): Promise<any> {
+                return this.get(`agents/${id}/status`);
+        }
+
+        async setAgentLogLevel(id: string, level: string): Promise<any> {
+                return this.post(`agents/${id}/log/${level}`);
+        }
+
+        async setAotLogLevel(id: string, verbosity: number): Promise<any> {
+                return this.post(`agents/${id}/aot/log/${verbosity}`);
+        }
 
 	async findAgents(query: string, find: FindAgentsBody): Promise<AgentStatus[]> {
 		console.debug(find);
@@ -203,9 +219,25 @@ export class Agents {
 		return await this.api.getAgent(agent_id);
 	}
 
-	async tps(agent_id: string) {
-		return await this.api.getAgentTps(agent_id);
-	}
+        async tps(agent_id: string) {
+                return await this.api.getAgentTps(agent_id);
+        }
+
+        async kill(agent_id: string) {
+                return await this.api.killAgent(agent_id);
+        }
+
+        async status(agent_id: string) {
+                return await this.api.agentStatus(agent_id);
+        }
+
+        async setLogLevel(agent_id: string, level: string) {
+                return await this.api.setAgentLogLevel(agent_id, level);
+        }
+
+        async setSnarkosLogLevel(agent_id: string, verbosity: number) {
+                return await this.api.setAotLogLevel(agent_id, verbosity);
+        }
 
 	get find() {
 		return new FindAgentBuilder(this.api);
