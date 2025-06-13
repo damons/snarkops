@@ -7,6 +7,7 @@ members = [
 	"crates/common",
 	"crates/controlplane",
 	"crates/xtask",
+        "snops-web",
 ]
 resolver = "2"
 
