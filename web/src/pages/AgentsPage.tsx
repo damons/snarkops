@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../api';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api";
 
 interface AgentStatus {
   agent_id: string;
@@ -22,15 +22,38 @@ interface AgentRow {
   externalPeers: number;
 }
 
+type ColumnKey = "select" | keyof AgentRow;
+
+interface Column {
+  key: ColumnKey;
+  label: string;
+  sortable?: boolean;
+}
+
+const defaultColumns: Column[] = [
+  { key: "select", label: "SELECT" },
+  { key: "agentId", label: "AGENT ID", sortable: true },
+  { key: "network", label: "NETWORK", sortable: true },
+  { key: "nodeKey", label: "NODE KEY", sortable: true },
+  { key: "online", label: "ONLINE", sortable: true },
+  { key: "internalPeers", label: "INTERNAL PEERS", sortable: true },
+  { key: "externalPeers", label: "EXTERNAL PEERS", sortable: true },
+];
+
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [envNetworks, setEnvNetworks] = useState<Record<string, string>>({});
-  const [sort, setSort] = useState<{ key: keyof AgentRow; dir: 'asc' | 'desc' }>({
-    key: 'agentId',
-    dir: 'asc',
+  const [sort, setSort] = useState<{
+    key: keyof AgentRow;
+    dir: "asc" | "desc";
+  }>({
+    key: "agentId",
+    dir: "asc",
   });
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [action, setAction] = useState<string>('kill');
+  const [action, setAction] = useState<string>("kill");
+  const [columns, setColumns] = useState<Column[]>(defaultColumns);
+  const [dragCol, setDragCol] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -47,8 +70,8 @@ export default function AgentsPage() {
                 return [envId];
               }
               return [];
-            })
-          )
+            }),
+          ),
         );
 
         const networks: Record<string, string> = {};
@@ -60,7 +83,7 @@ export default function AgentsPage() {
             } catch (e) {
               console.error(e);
             }
-          })
+          }),
         );
 
         setEnvNetworks(networks);
@@ -73,8 +96,8 @@ export default function AgentsPage() {
   }, []);
 
   const rows: AgentRow[] = agents.map((a: any) => {
-    let network = '';
-    let nodeKey = '';
+    let network = "";
+    let nodeKey = "";
     let online = false;
     let internalPeers = 0;
     let externalPeers = 0;
@@ -87,9 +110,9 @@ export default function AgentsPage() {
       online = nodeState.online;
       if (Array.isArray(nodeState.peers)) {
         for (const p of nodeState.peers) {
-          if (p && typeof p === 'object') {
-            if ('Internal' in p) internalPeers += 1;
-            if ('External' in p) externalPeers += 1;
+          if (p && typeof p === "object") {
+            if ("Internal" in p) internalPeers += 1;
+            if ("External" in p) externalPeers += 1;
           }
         }
       }
@@ -110,43 +133,46 @@ export default function AgentsPage() {
     const av = a[key];
     const bv = b[key];
     let cmp = 0;
-    if (typeof av === 'string' && typeof bv === 'string') {
+    if (typeof av === "string" && typeof bv === "string") {
       cmp = av.localeCompare(bv);
     } else {
       cmp = av === bv ? 0 : av > bv ? 1 : -1;
     }
-    return dir === 'asc' ? cmp : -cmp;
+    return dir === "asc" ? cmp : -cmp;
   });
 
   const handleSort = (key: keyof AgentRow) => {
     setSort((prev) =>
-      prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" },
     );
   };
 
   const handleExecute = async () => {
     if (selected.size === 0) return;
-    if (!window.confirm(`Execute ${action} on ${selected.size} agent(s)?`)) return;
+    if (!window.confirm(`Execute ${action} on ${selected.size} agent(s)?`))
+      return;
 
     for (const id of Array.from(selected)) {
       try {
         switch (action) {
-          case 'kill':
+          case "kill":
             await api.agents.kill(id);
             break;
-          case 'status':
+          case "status":
             await api.agents.status(id);
             break;
-          case 'tps':
+          case "tps":
             await api.agents.tps(id);
             break;
-          case 'set-log-level': {
-            const level = window.prompt('Log level', 'info');
+          case "set-log-level": {
+            const level = window.prompt("Log level", "info");
             if (level) await api.agents.setLogLevel(id, level);
             break;
           }
-          case 'set-snarkos-log': {
-            const v = window.prompt('Verbosity', '0');
+          case "set-snarkos-log": {
+            const v = window.prompt("Verbosity", "0");
             if (v) await api.agents.setSnarkosLogLevel(id, parseInt(v, 10));
             break;
           }
@@ -159,12 +185,41 @@ export default function AgentsPage() {
     setSelected(new Set());
   };
 
+  const allSelected =
+    rows.length > 0 && rows.every((r) => selected.has(r.agentId));
+
+  const handleSelectAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(rows.map((r) => r.agentId)));
+  };
+
+  const handleDragStart = (index: number) => setDragCol(index);
+
+  const handleDrop = (index: number) => {
+    if (dragCol === null || dragCol === index) return;
+    setColumns((cols) => {
+      const newCols = [...cols];
+      const [m] = newCols.splice(dragCol, 1);
+      newCols.splice(index, 0, m);
+      return newCols;
+    });
+    setDragCol(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnd = () => setDragCol(null);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
       <h2>Agents</h2>
-      <div style={{ marginBottom: '0.5rem' }}>
+      <div style={{ marginBottom: "0.5rem" }}>
         <label>
-          ACTION{' '}
+          ACTION{" "}
           <select value={action} onChange={(e) => setAction(e.target.value)}>
             <option value="kill">kill</option>
             <option value="status">status</option>
@@ -172,44 +227,105 @@ export default function AgentsPage() {
             <option value="set-log-level">set log level</option>
             <option value="set-snarkos-log">set snarkos log level</option>
           </select>
-        </label>{' '}
-        <button onClick={handleExecute} disabled={selected.size === 0}>EXECUTE</button>
+        </label>{" "}
+        <button onClick={handleExecute} disabled={selected.size === 0}>
+          EXECUTE
+        </button>
       </div>
       <table className="json-table">
         <thead>
           <tr>
-            <th onClick={() => handleSort('agentId')}>AGENT ID</th>
-            <th>SELECT</th>
-            <th onClick={() => handleSort('network')}>NETWORK</th>
-            <th onClick={() => handleSort('nodeKey')}>NODE KEY</th>
-            <th onClick={() => handleSort('online')}>ONLINE</th>
-            <th onClick={() => handleSort('internalPeers')}>INTERNAL PEERS</th>
-            <th onClick={() => handleSort('externalPeers')}>EXTERNAL PEERS</th>
+            {columns.map((c, i) => (
+              <th
+                key={c.key}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={handleDragEnd}
+                onClick={() => {
+                  if (c.key === "select") handleSelectAll();
+                  else if (c.sortable) handleSort(c.key as keyof AgentRow);
+                }}
+                style={
+                  c.key === "select" ||
+                  c.key === "network" ||
+                  c.key === "online" ||
+                  c.key === "internalPeers" ||
+                  c.key === "externalPeers"
+                    ? { textAlign: "center" }
+                    : undefined
+                }
+              >
+                {c.label}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {sorted.map((r) => (
             <tr key={r.agentId}>
-              <td>
-                <Link to={`/agents/${r.agentId}`}>{r.agentId}</Link>
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selected.has(r.agentId)}
-                  onChange={(e) => {
-                    const ns = new Set(selected);
-                    if (e.target.checked) ns.add(r.agentId);
-                    else ns.delete(r.agentId);
-                    setSelected(ns);
-                  }}
-                />
-              </td>
-              <td>{r.network}</td>
-              <td>{r.nodeKey}</td>
-              <td>{r.online ? 'yes' : 'no'}</td>
-              <td>{r.internalPeers}</td>
-              <td>{r.externalPeers}</td>
+              {columns.map((c) => {
+                switch (c.key) {
+                  case "select":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.agentId)}
+                          onChange={(e) => {
+                            const ns = new Set(selected);
+                            if (e.target.checked) ns.add(r.agentId);
+                            else ns.delete(r.agentId);
+                            setSelected(ns);
+                          }}
+                        />
+                      </td>
+                    );
+                  case "agentId":
+                    return (
+                      <td key={c.key}>
+                        <Link to={`/agents/${r.agentId}`}>{r.agentId}</Link>
+                      </td>
+                    );
+                  case "network":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.network}
+                      </td>
+                    );
+                  case "nodeKey":
+                    return <td key={c.key}>{r.nodeKey}</td>;
+                  case "online":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: "0.6em",
+                            height: "0.6em",
+                            borderRadius: "50%",
+                            backgroundColor: r.online ? "green" : "red",
+                          }}
+                        />
+                      </td>
+                    );
+                  case "internalPeers":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.internalPeers}
+                      </td>
+                    );
+                  case "externalPeers":
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.externalPeers}
+                      </td>
+                    );
+                  default:
+                    return null;
+                }
+              })}
             </tr>
           ))}
         </tbody>
