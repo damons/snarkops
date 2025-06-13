@@ -247,6 +247,14 @@ export default function AgentsPage() {
                   if (c.key === "select") handleSelectAll();
                   else if (c.sortable) handleSort(c.key as keyof AgentRow);
                 }}
+                style={
+                  c.key === "network" ||
+                  c.key === "online" ||
+                  c.key === "internalPeers" ||
+                  c.key === "externalPeers"
+                    ? { textAlign: "center" }
+                    : undefined
+                }
               >
                 {c.label}
               </th>
@@ -280,15 +288,37 @@ export default function AgentsPage() {
                       </td>
                     );
                   case "network":
-                    return <td key={c.key}>{r.network}</td>;
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.network}
+                      </td>
+                    );
                   case "nodeKey":
                     return <td key={c.key}>{r.nodeKey}</td>;
                   case "online":
-                    return <td key={c.key}>{r.online ? "yes" : "no"}</td>;
+                    return (
+                      <td
+                        key={c.key}
+                        style={{
+                          textAlign: "center",
+                          color: r.online ? "green" : "red",
+                        }}
+                      >
+                        {r.online ? "yes" : "no"}
+                      </td>
+                    );
                   case "internalPeers":
-                    return <td key={c.key}>{r.internalPeers}</td>;
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.internalPeers}
+                      </td>
+                    );
                   case "externalPeers":
-                    return <td key={c.key}>{r.externalPeers}</td>;
+                    return (
+                      <td key={c.key} style={{ textAlign: "center" }}>
+                        {r.externalPeers}
+                      </td>
+                    );
                   default:
                     return null;
                 }
